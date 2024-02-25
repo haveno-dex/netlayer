@@ -4,9 +4,9 @@
 
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.github.bisq-network.netlayer</groupId>
+        <groupId>com.github.haveno-dex.netlayer</groupId>
         <artifactId>parent</artifactId>
-        <version>0.7.6</version>
+        <version>0.7.7</version>
     </parent>
 
     <artifactId>tor.external</artifactId>
@@ -15,7 +15,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.github.bisq-network.netlayer</groupId>
+            <groupId>com.github.haveno-dex.netlayer</groupId>
             <artifactId>tor</artifactId>
             <version>${project.version}</version>
         </dependency>

@@ -38,7 +38,7 @@ import java.io.File
 import java.io.IOException
 
 private const val FILE_ARCHIVE = "tor.tar.xz"
-private const val BINARY_TOR_MACOS = "tor.real"
+private const val BINARY_TOR_MACOS = "tor"
 private const val BINARY_TOR_WIN = "tor.exe"
 private const val BINARY_TOR_LNX = "tor"
 private const val PATH_LNX = "linux/"
