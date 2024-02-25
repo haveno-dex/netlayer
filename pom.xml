@@ -3,9 +3,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.github.bisq-network.netlayer</groupId>
+    <groupId>com.github.haveno-dex.netlayer</groupId>
     <artifactId>parent</artifactId>
-    <version>0.7.6</version>
+    <version>0.7.7</version>
     <packaging>pom</packaging>
 
     <name>Netlayer</name>
@@ -17,8 +17,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- Maven plugins -->
         <maven-compiler-plugin.version>3.7.0</maven-compiler-plugin.version>
-        <!-- Tor browser version 11.5.2; tor binary version: 0.4.7.10-->
-        <tor-binary.version>580d31bdcf1fabccd38456aa084044064d89d5c1</tor-binary.version>
+        <!-- Tor browser version 13.0.6; tor binary version: 0.4.8.9-->
+        <tor-binary.version>2a2bb51707c310a0008ae3f441c3f9402ae27557</tor-binary.version>
     </properties>
 
     <modules>
