@@ -17,8 +17,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- Maven plugins -->
         <maven-compiler-plugin.version>3.7.0</maven-compiler-plugin.version>
-        <!-- Tor browser version 13.0.15; tor binary version: 0.4.8.11-->
-    <tor-binary.version>4e38c9d5cc22266fe06cc42578020bc0a50c783f</tor-binary.version>
+        <!-- Tor browser version 14.0.3; tor binary version: 0.4.8.13-->
+    <tor-binary.version>121386cbf1519601180f426ca584aa65c3485779</tor-binary.version>
     </properties>
 
     <modules>
@@ -33,7 +33,7 @@
             <url>https://jitpack.io</url>
         </repository>
     </repositories>
-    
+
     <dependencies>
          <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
