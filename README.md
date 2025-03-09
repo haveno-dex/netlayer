@@ -7,8 +7,8 @@ This repository currently contains a Kotlin/Java8 Tor Library supporting
  * Bridges and pluggable transports
  * Connecting to hidden services
  * Hosting of hidden services
- 
- This project was originally based on a [previous fork](https://github.com/ManfredKarrer/Tor_Onion_Proxy_Library
+
+This project was originally based on a [previous fork](https://github.com/ManfredKarrer/Tor_Onion_Proxy_Library
 ) of [thaliproject/Tor_Onion_Proxy_Library](https://github.com/thaliproject/Tor_Onion_Proxy_Library), but deviated significatnly since.
 
 ## Usage
@@ -23,14 +23,12 @@ As of you, simply add `tor.native` as dependency to your project (using JitPack)
     </repositories>
 ```
 ```XML
-
 <dependency>
-    <groupId>com.github.bisq-network.netlayer</groupId>
+    <groupId>com.github.haveno-dex.netlayer</groupId>
     <artifactId>tor.native</artifactId>
           <version>${netlayer.version}</version>
       </dependency>
 ```
-
 
 ### Tunneling Traffic through Tor
 This library provides a plain TCP socket which can be used like any other:
@@ -41,7 +39,7 @@ This library provides a plain TCP socket which can be used like any other:
     //This will take some time
     Tor.default = NativeTor(/*Tor installation destination*/ File("tor-demo"))
     TorSocket("www.google.com", 80, streamId = "FOO" /*this one is optional*/) //clear web
-    TorSocket("facebookcorewwwi.onion", 443, streamId = "BAR") //hidden service
+    TorSocket("www.facebookwkhpilnemxj7asaniu7vnjjbiltxjqhye3mhbshg7kx5tfyd.onion", 443, streamId = "BAR") //hidden service
 ```
 
 #### Java
@@ -50,7 +48,7 @@ This library provides a plain TCP socket which can be used like any other:
     //This will take some time
     Tor.setDefault(new NativeTor(/*Tor installation destination*/ new File("tor-demo")));
     new TorSocket("www.google.com", 80, "FOO");
-    new TorSocket("facebookcorewwwi.onion", 443, "BAR");
+    new TorSocket("www.facebookwkhpilnemxj7asaniu7vnjjbiltxjqhye3mhbshg7kx5tfyd.onion", 443, "BAR");
 ```
 
 ### Using Bridges and Pluggable Transports

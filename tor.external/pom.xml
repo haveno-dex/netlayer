@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.github.haveno-dex.netlayer</groupId>
         <artifactId>parent</artifactId>
-        <version>0.7.7</version>
+        <version>0.7.8</version>
     </parent>
 
     <artifactId>tor.external</artifactId>
