@@ -5,7 +5,7 @@
 
     <groupId>com.github.haveno-dex.netlayer</groupId>
     <artifactId>parent</artifactId>
-    <version>0.7.7</version>
+    <version>0.7.8</version>
     <packaging>pom</packaging>
 
     <name>Netlayer</name>
@@ -17,8 +17,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- Maven plugins -->
         <maven-compiler-plugin.version>3.7.0</maven-compiler-plugin.version>
-        <!-- Tor browser version 14.0.3; tor binary version: 0.4.8.13-->
-    <tor-binary.version>6bdcb0303ae92f4b7bd7102706467f10fcac4d9e</tor-binary.version>
+        <!-- Tor browser version 14.0.7; tor binary version: 0.4.8.14-->
+    <tor-binary.version>462c44c157cbf0b7574b7ab14d0bf231df770a63</tor-binary.version>
     </properties>
 
     <modules>
