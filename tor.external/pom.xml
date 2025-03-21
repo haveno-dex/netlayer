@@ -4,7 +4,7 @@
 
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.github.haveno-dex.netlayer</groupId>
+        <groupId>com.github.NorrinRadd.netlayer</groupId>
         <artifactId>parent</artifactId>
         <version>0.7.8</version>
     </parent>
@@ -15,7 +15,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.github.haveno-dex.netlayer</groupId>
+            <groupId>com.github.NorrinRadd.netlayer</groupId>
             <artifactId>tor</artifactId>
             <version>${project.version}</version>
         </dependency>
