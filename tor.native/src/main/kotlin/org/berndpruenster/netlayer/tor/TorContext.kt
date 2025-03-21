@@ -118,7 +118,6 @@ class Torrc @Throws(IOException::class) internal constructor(defaults: InputStre
             this.append(it.key).append(" ").append(it.value).append(" ")
         }
     }.toString()
-
 }
 
 abstract class TorContext @Throws(IOException::class) protected constructor(val workingDirectory: File,
@@ -238,7 +237,7 @@ abstract class TorContext @Throws(IOException::class) protected constructor(val 
         val environment = processBuilder.environment()
         environment.put("HOME", workingDirectory.absolutePath)
         when (OsType.current) {
-            OsType.LNX32, OsType.LNX64 ->
+            OsType.LNXAA64, OsType.LNX32, OsType.LNX64 ->
                 // We have to provide the LD_LIBRARY_PATH because when looking
                 // for dynamic libraries
                 // Linux apparently will not look in the current directory by
@@ -423,7 +422,6 @@ abstract class TorContext @Throws(IOException::class) protected constructor(val 
                 reader.forEachLine {
                     confWriter.println(it)
                 }
-
             }
             if (!bridgeConfig.isEmpty()) {
                 confWriter.println()
