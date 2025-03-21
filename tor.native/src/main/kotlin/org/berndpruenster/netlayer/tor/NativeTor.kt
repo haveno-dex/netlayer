@@ -60,18 +60,24 @@ class NativeTor @JvmOverloads @Throws(TorCtlException::class) constructor(workin
     private val bridgeConfig: List<String> = bridgeLines?.filter { it.length > 10 } ?: emptyList()
 
     private lateinit var myTorController : TorController
+
     init {
+        logger?.info { "NativeTor initializer called" }
         try {
             var done = false
             loop@ for (retryCount in 1..TRIES_PER_STARTUP) {
                 myTorController = context.installAndStartTorOp(bridgeConfig, eventHandler)
+                logger?.info { "Tor installation returned" }
                 myTorController.enableNetwork()
+                logger?.info { "enable tor network returned" }
                 // We will check every second to see if boot strapping has
                 // finally finished
                 for (secondsWaited in 1..TOTAL_SEC_PER_STARTUP) {
                     if (!myTorController.bootstrapped) {
+                        logger?.info { "Controller is not bootstrapped" }
                         Thread.sleep(1000, 0)
                     } else {
+                        logger?.info { "Controller is bootstrapped" }
                         torController = myTorController
                         control = Control(torController)
                         if(automaticShutdown)
@@ -182,6 +188,7 @@ class NativeContext(workingDirectory: File, overrides: Torrc?) : TorContext(work
     override fun generateWriteObserver(file: File): WriteObserver = NativeWatchObserver(file)
 
     override fun installFiles() {
+        logger?.info { "installFiles called" }
         super.installFiles()
         when (OsType.current) {
             OsType.LNXAA64, OsType.WIN, OsType.LNX32, OsType.LNX64, OsType.MACOS -> extractContentFromArchive(workingDirectory,
