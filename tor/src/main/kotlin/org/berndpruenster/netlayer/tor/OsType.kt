@@ -88,8 +88,8 @@ enum class OsType { WIN,
                     return LNX64
                 }
 
-                if (unameOutput.matches(Regex("arm")) || 
-                    unameOutput.matches(Regex("aarch")) ) {
+                if (unameOutput.matches(Regex("arm64")) || 
+                    unameOutput.matches(Regex("aarch64")) ) {
                     return LNXAA64
                 }
                 throw  RuntimeException("Could not understand uname output, not sure what bitness")
