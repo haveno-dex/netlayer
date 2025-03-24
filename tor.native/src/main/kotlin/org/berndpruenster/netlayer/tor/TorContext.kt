@@ -133,11 +133,10 @@ abstract class TorContext @Throws(IOException::class) protected constructor(val 
                        Thread.currentThread().name = "NFO"
                        BufferedReader(inputStream.reader()).use { reader ->
                            reader.forEachLine {
-                               logger?.info { it }
+                               logger?.debug { it }
                                if (it.contains("Control listener listening on port ")) {
                                    port.set(Integer.parseInt(it.substring(it.lastIndexOf(" ") + 1, it.length - 1)))
                                    latch.countDown()
-                                    logger?.info { "Tor is running on a port" }
                                }
                            }
                        }
@@ -301,7 +300,6 @@ abstract class TorContext @Throws(IOException::class) protected constructor(val 
      */
     @Throws(IOException::class)
     fun installAndStartTorOp(bridgeConfig: List<String>, eventHandler: TorEventHandler): TorController {
-        logger?.info { "installAndStartTorOp called" }
 
         installAndConfigureFiles(bridgeConfig)
 
