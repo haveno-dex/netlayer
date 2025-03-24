@@ -90,7 +90,6 @@ class TraceStream(logger : KLogger) : PrintWriter(Stream(logger), true) {
             }
         }
     }
-
 }
 
 class TorController : TorControlConnection {
@@ -118,7 +117,6 @@ class TorController : TorControlConnection {
     fun enableNetwork() {
         setConf(DISABLE_NETWORK, "0")
     }
-
 }
 
 class Control(private val con: TorController) {
@@ -142,7 +140,6 @@ class Control(private val con: TorController) {
             con.shutdown()
         }
     }
-
 
     private fun parsePort(): Int {
         // This returns a set of space delimited quoted strings which could be
@@ -231,7 +228,6 @@ abstract class Tor @Throws(TorCtlException::class) protected constructor() {
                 })
             }
             return proxy
-
         }
     }
 
