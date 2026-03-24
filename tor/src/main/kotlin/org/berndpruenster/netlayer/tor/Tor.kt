@@ -250,7 +250,20 @@ abstract class Tor @Throws(TorCtlException::class) protected constructor() {
      * @throws TorCtlException
      */
     @Throws(IOException::class, TorCtlException::class)
-    fun publishHiddenService(hsDirName: String, hiddenServicePort: Int, localPort: Int): HsContainer {
+    fun publishHiddenService(
+        hsDirName: String,
+        hiddenServicePort: Int,
+        localPort: Int
+    ) = publishHiddenService(hsDirName, hiddenServicePort, localPort, emptyList(), null)
+
+    @Throws(IOException::class, TorCtlException::class)
+    fun publishHiddenService(
+        hsDirName: String,
+        hiddenServicePort: Int,
+        localPort: Int,
+        flags: List<String> = emptyList(),
+        maxStreams: Int? = null
+    ): HsContainer {
 
         val hostnameFile = File(preprocessHsDirName(hsDirName), "hostname")
         val keyFile = File(preprocessHsDirName(hsDirName), "private_key")
@@ -261,30 +274,44 @@ abstract class Tor @Throws(TorCtlException::class) protected constructor() {
 
         if(keyFile.exists()) {
             // if the service has already been started once, we reuse the data
-            result = torController.createHiddenService(hiddenServicePort, localPort, keyFile.readText())
+            result = torController.createHiddenService(
+                hiddenServicePort,
+                localPort,
+                keyFile.readText().trim(),
+                flags,
+                maxStreams
+            )
         } else {
             // else, we create a fresh service with a fresh key
-            result = torController.createHiddenService(hiddenServicePort, localPort)
+            result = torController.createHiddenService(
+                hiddenServicePort,
+                localPort,
+                null,
+                flags,
+                maxStreams
+            )
 
             // and while we are at it, we persist the hs information for future use
             if (!(hostnameFile.parentFile.exists() || hostnameFile.parentFile.mkdirs())) {
-                throw  TorCtlException("Could not create hostnameFile parent directory")
+                throw TorCtlException("Could not create hostnameFile parent directory")
             }
 
             if (!(hostnameFile.exists() || hostnameFile.createNewFile())) {
-                throw  TorCtlException("Could not create hostnameFile")
+                throw TorCtlException("Could not create hostnameFile")
             }
 
             if (!(keyFile.exists() || keyFile.createNewFile())) {
-                throw  TorCtlException("Could not create keyFile")
+                throw TorCtlException("Could not create keyFile")
             }
 
             // Thanks, Ubuntu!
             try {
                 if (OsType.current.isUnixoid()) {
-                    val perms = mutableSetOf(PosixFilePermission.OWNER_READ,
-                            PosixFilePermission.OWNER_WRITE,
-                            PosixFilePermission.OWNER_EXECUTE)
+                    val perms = mutableSetOf(
+                        PosixFilePermission.OWNER_READ,
+                        PosixFilePermission.OWNER_WRITE,
+                        PosixFilePermission.OWNER_EXECUTE
+                    )
                     Files.setPosixFilePermissions(hostnameFile.parentFile.toPath(), perms)
                 }
             } catch (e: Exception) {
@@ -296,7 +323,7 @@ abstract class Tor @Throws(TorCtlException::class) protected constructor() {
         }
 
         // memorize service in case of ungraceful shutdown
-        val hostname = result.serviceID+".onion"
+        val hostname = result.serviceID + ".onion"
         activeHiddenServices.add(hostname)
         return HsContainer(hostname, eventHandler)
     }
