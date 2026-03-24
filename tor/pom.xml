@@ -21,10 +21,10 @@
             <version>${tor-binary.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.github.bisq-network</groupId>
+            <groupId>com.github.haveno-dex</groupId>
             <artifactId>jtorctl</artifactId>
-            <!-- v1.5 -->
-            <version>b2a172f44edcd8deaa5ed75d936dcbb007f0d774</version>
+            <!-- v1.6 -->
+            <version>05445068b6fcba32a5dedcd382c5e5fff3b14588</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
