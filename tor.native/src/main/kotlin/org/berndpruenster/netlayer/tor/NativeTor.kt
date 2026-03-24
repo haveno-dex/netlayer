@@ -113,6 +113,7 @@ class NativeTor @JvmOverloads @Throws(TorCtlException::class) constructor(workin
                     context.deleteAllFilesButHS()
                     myTorController.shutdown()
                 } catch (e: Exception) {
+                    logger?.error { "Test error message" }
                     logger?.error { e.localizedMessage }
                 }
             }
