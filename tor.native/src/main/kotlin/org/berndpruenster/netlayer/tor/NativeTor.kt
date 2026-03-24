@@ -106,6 +106,8 @@ class NativeTor @JvmOverloads @Throws(TorCtlException::class) constructor(workin
         } catch (e: IOException) {
             throw TorCtlException("Could not setup Tor", e)
         } finally {
+            logger?.error { "Test error message in finally" }
+            logger?.error { e.localizedMessage }
             // Make sure we return the Tor OP in some kind of consistent state,
             // even if it's 'off'.
             if (::myTorController.isInitialized && !myTorController.bootstrapped) {
