@@ -179,10 +179,14 @@ class TorSocket @JvmOverloads @Throws(IOException::class) constructor(private va
 }
 
 
-class HiddenServiceSocket @JvmOverloads constructor(internalPort: Int,
-                                                    private val hiddenServiceDir: String = "ephemeral hidden service",
-                                                    val hiddenServicePort: Int = internalPort,
-                                                    tor: Tor? = null) : ServerSocket() {
+class HiddenServiceSocket @JvmOverloads constructor(
+        internalPort: Int,
+        private val hiddenServiceDir: String = "ephemeral hidden service",
+        val hiddenServicePort: Int = internalPort,
+        tor: Tor? = null,
+        val flags: List<String>? = null,
+        val params: List<String>? = null
+    ) : ServerSocket() {
 
     private val mgr = getTorInstance(tor)
     private val listeners = mutableListOf<(socket: HiddenServiceSocket) -> Unit>()
@@ -191,7 +195,13 @@ class HiddenServiceSocket @JvmOverloads constructor(internalPort: Int,
     val serviceName: String
 
     init {
-        val (name, handler) = mgr.publishHiddenService(hiddenServiceDir, hiddenServicePort, internalPort)
+        val (name, handler) = mgr.publishHiddenService(
+            hiddenServiceDir,
+            hiddenServicePort,
+            internalPort,
+            flags,
+            params
+        )
         serviceName = name
         socketAddress = HiddenServiceSocketAddress(name, hiddenServicePort)
         bind(InetSocketAddress(if (isWhonixWorkstation()) EXTERNAL_IP else LOCAL_IP, internalPort))
