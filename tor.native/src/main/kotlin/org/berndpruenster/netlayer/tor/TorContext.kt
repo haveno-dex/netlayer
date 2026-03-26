@@ -181,8 +181,12 @@ abstract class TorContext @Throws(IOException::class) protected constructor(val 
 
             // getRuntime: Returns the runtime object associated with the current Java application.
             // exec: Executes the specified string command in a separate process.
-            val p = Runtime.getRuntime().exec(if (OsType.current.isUnixoid()) "ps -few" else (System.getenv("windir") + "\\system32\\" + "tasklist.exe /fo csv /nh"))
+            // FIXME this can return false positive matches
+            // $ ps -few | grep /home/user/.local/share/Haveno/xmr_mainnet/tor/tor | grep -v grep
+            // user      678217  195492  0 08:41 pts/21   00:00:00 nano /home/user/.local/share/Haveno/xmr_mainnet/tor/torrc
+            val p = Runtime.getRuntime().exec(if (OsType.current.isUnixoid()) "ps -eo args" else (System.getenv("windir") + "\\system32\\" + "tasklist.exe /fo csv /nh"))
             val allText = p.inputStream.bufferedReader().use(BufferedReader::readText)
+            // FIXME use regex: (^|\n)/path/to/tor( |\n|$)
             if (!allText.contains(torExecutableFile.absolutePath))
                 break
 
