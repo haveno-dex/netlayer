@@ -1,5 +1,5 @@
-## obfs4proxy configuration
-ClientTransportPlugin obfs4 exec PluggableTransports/lyrebird
+## Lyrebird handles obfs4, meek, and webtunnel
+ClientTransportPlugin obfs4,meek,webtunnel exec pluggable_transports/lyrebird
 
-## meek configuration
-ClientTransportPlugin meek exec PluggableTransports/meek-client
+## Conjure (Optional, but included in modern bundles)
+ClientTransportPlugin conjure exec pluggable_transports/conjure-client
