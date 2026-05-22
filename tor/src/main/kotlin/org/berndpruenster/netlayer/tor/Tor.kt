@@ -35,15 +35,16 @@ various open source licenses (www.opensource.org).
 package org.berndpruenster.netlayer.tor
 
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy
-import mu.KLogger
-import mu.KotlinLogging
-import net.freehaven.tor.control.ConfigEntry
+import io.github.oshai.kotlinlogging.KLogger
+import io.github.oshai.kotlinlogging.KotlinLogging
 import net.freehaven.tor.control.TorControlConnection
 import java.io.*
 import java.math.BigInteger
 import java.net.Socket
+import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
+import java.nio.file.attribute.PosixFilePermissions
 import java.security.MessageDigest
 
 /**
@@ -57,6 +58,15 @@ private const val NET_LISTENERS_SOCKS = "net/listeners/socks"
 
 private const val STATUS_BOOTSTRAPPED = "status/bootstrap-phase"
 private const val DISABLE_NETWORK = "DisableNetwork"
+private const val FILE_HOSTNAME = "hostname"
+private const val FILE_PRIVATE_KEY = "private_key"
+private val OWNER_ONLY_DIRECTORY_PERMISSIONS = setOf(
+        PosixFilePermission.OWNER_READ,
+        PosixFilePermission.OWNER_WRITE,
+        PosixFilePermission.OWNER_EXECUTE)
+private val OWNER_ONLY_FILE_PERMISSIONS = setOf(
+        PosixFilePermission.OWNER_READ,
+        PosixFilePermission.OWNER_WRITE)
 
 val logger = try {
     KotlinLogging.logger { }
@@ -79,17 +89,18 @@ class TraceStream(logger : KLogger) : PrintWriter(Stream(logger), true) {
         }
 
         override fun write(cbuf: ByteArray, off: Int, len: Int) {
-            if(!logger.isTraceEnabled) return
+            if(!logger.isTraceEnabled()) return
             synchronized(logger) {
                 var message = String(cbuf.copyOfRange(off, off + len))
-                message.filterNot { it -> it == '\r' }
+                message = message.filterNot { it -> it == '\r' }
                 message.split(Regex("\\n", RegexOption.MULTILINE)).forEach {
-                    if(it.isNotEmpty()) logger.trace(it)
+                    if(it.isNotEmpty()) logger.trace { it }
                 }
                 flush()
             }
         }
     }
+
 }
 
 class TorController : TorControlConnection {
@@ -108,7 +119,7 @@ class TorController : TorControlConnection {
 
     fun shutdown() {
         socket.use {
-            logger?.debug("Stopping Tor")
+            logger?.debug { "Stopping Tor" }
             setConf(DISABLE_NETWORK, "1")
             shutdownTor("TERM")
         }
@@ -117,6 +128,7 @@ class TorController : TorControlConnection {
     fun enableNetwork() {
         setConf(DISABLE_NETWORK, "0")
     }
+
 }
 
 class Control(private val con: TorController) {
@@ -132,14 +144,16 @@ class Control(private val con: TorController) {
 
     internal var running = true
         private set
+    private val shutdownLock = Any()
 
     fun shutdown() {
-        synchronized(running) {
+        synchronized(shutdownLock) {
             if (!running) return
             running = false
             con.shutdown()
         }
     }
+
 
     private fun parsePort(): Int {
         // This returns a set of space delimited quoted strings which could be
@@ -207,12 +221,12 @@ abstract class Tor @Throws(TorCtlException::class) protected constructor() {
             proxy.resolveAddrLocally(false)
             streamID?.let {
                 val hash: ByteArray
-                val authValue = BigInteger(MessageDigest.getInstance("SHA-256").digest(streamID.toByteArray())).toString(
+                val authValue = BigInteger(MessageDigest.getInstance("SHA-256").digest(streamID.toByteArray(StandardCharsets.UTF_8))).toString(
                         26)
-                hash = authValue.toByteArray()
+                hash = authValue.toByteArray(StandardCharsets.UTF_8)
 
                 proxy.setAuthenticationMethod(2, { _, proxySocket ->
-                    logger?.debug("using Stream $authValue")
+                    logger?.debug { "using Stream $authValue" }
 
                     val out = proxySocket.getOutputStream()
                     out.write(byteArrayOf(1.toByte(), hash.size.toByte()))
@@ -228,6 +242,7 @@ abstract class Tor @Throws(TorCtlException::class) protected constructor() {
                 })
             }
             return proxy
+
         }
     }
 
@@ -235,6 +250,7 @@ abstract class Tor @Throws(TorCtlException::class) protected constructor() {
     @JvmOverloads
     fun getProxy(proxyHost: String, streamID: String? = null): Socks5Proxy = Tor.getProxy(proxyHost, control.proxyPort, streamID)
 
+    @Throws(IOException::class)
     abstract fun preprocessHsDirName(hsDirName: String) : File
 
     /**
@@ -264,66 +280,49 @@ abstract class Tor @Throws(TorCtlException::class) protected constructor() {
         flags: List<String>? = null,
         params: List<String>? = null
     ): HsContainer {
-
-        val hostnameFile = File(preprocessHsDirName(hsDirName), "hostname")
-        val keyFile = File(preprocessHsDirName(hsDirName), "private_key")
+        val hiddenServiceDirectory = try {
+            preprocessHsDirName(hsDirName)
+        } catch (e: IOException) {
+            throw e
+        } catch (e: IllegalArgumentException) {
+            throw IOException("Invalid hidden service directory '$hsDirName'", e)
+        }
+        val hostnameFile = File(hiddenServiceDirectory, FILE_HOSTNAME)
+        val keyFile = File(hiddenServiceDirectory, FILE_PRIVATE_KEY)
+        rejectSymbolicLink(hostnameFile)
+        rejectSymbolicLink(keyFile)
 
         val result: TorControlConnection.CreateHiddenServiceResult
 
         control.enableHiddenServiceEvents()
 
         if(keyFile.exists()) {
+            restrictFileToOwner(keyFile)
             // if the service has already been started once, we reuse the data
-            result = torController.createHiddenService(
-                hiddenServicePort,
-                localPort,
-                keyFile.readText(),
-                flags,
-                params
-            )
+            result = torController.createHiddenService(hiddenServicePort, localPort, keyFile.readText(Charsets.UTF_8), flags, params)
         } else {
             // else, we create a fresh service with a fresh key
-            result = torController.createHiddenService(
-                hiddenServicePort,
-                localPort,
-                null,
-                flags,
-                params
-            )
+            result = torController.createHiddenService(hiddenServicePort, localPort, null, flags, params)
 
             // and while we are at it, we persist the hs information for future use
             if (!(hostnameFile.parentFile.exists() || hostnameFile.parentFile.mkdirs())) {
-                throw TorCtlException("Could not create hostnameFile parent directory")
+                throw  TorCtlException("Could not create hostnameFile parent directory")
             }
+            restrictDirectoryToOwner(hostnameFile.parentFile)
 
             if (!(hostnameFile.exists() || hostnameFile.createNewFile())) {
-                throw TorCtlException("Could not create hostnameFile")
+                throw  TorCtlException("Could not create hostnameFile")
             }
 
-            if (!(keyFile.exists() || keyFile.createNewFile())) {
-                throw TorCtlException("Could not create keyFile")
-            }
+            createOwnerOnlyFile(keyFile)
 
-            // Thanks, Ubuntu!
-            try {
-                if (OsType.current.isUnixoid()) {
-                    val perms = mutableSetOf(
-                        PosixFilePermission.OWNER_READ,
-                        PosixFilePermission.OWNER_WRITE,
-                        PosixFilePermission.OWNER_EXECUTE
-                    )
-                    Files.setPosixFilePermissions(hostnameFile.parentFile.toPath(), perms)
-                }
-            } catch (e: Exception) {
-                logger?.error("could not set permissions, hidden service $hsDirName will most probably not work", e)
-            }
-
-            hostnameFile.appendText(result.serviceID + ".onion")
-            keyFile.appendText(result.privateKey)
+            hostnameFile.writeText(result.serviceID + ".onion", Charsets.UTF_8)
+            keyFile.writeText(result.privateKey, Charsets.UTF_8)
+            restrictFileToOwner(keyFile)
         }
 
         // memorize service in case of ungraceful shutdown
-        val hostname = result.serviceID + ".onion"
+        val hostname = result.serviceID+".onion"
         activeHiddenServices.add(hostname)
         return HsContainer(hostname, eventHandler)
     }
@@ -338,4 +337,58 @@ abstract class Tor @Throws(TorCtlException::class) protected constructor() {
     fun isHiddenServiceAvailable(onionUrl: String): Boolean = control.hsAvailable(onionUrl)
 
     abstract fun shutdown()
+}
+
+@Throws(IOException::class)
+private fun rejectSymbolicLink(file: File) {
+    if (Files.isSymbolicLink(file.toPath())) {
+        throw IOException("Refusing to use symbolic link for hidden service file $file")
+    }
+}
+
+@Throws(IOException::class)
+private fun createOwnerOnlyFile(file: File) {
+    if (file.exists()) {
+        restrictFileToOwner(file)
+        return
+    }
+    if (OsType.current.isUnixoid()) {
+        Files.createFile(file.toPath(), PosixFilePermissions.asFileAttribute(OWNER_ONLY_FILE_PERMISSIONS))
+    } else if (!file.createNewFile()) {
+        throw IOException("Could not create file $file")
+    }
+    restrictFileToOwner(file)
+}
+
+@Throws(IOException::class)
+private fun restrictFileToOwner(file: File) {
+    if (OsType.current.isUnixoid()) {
+        Files.setPosixFilePermissions(file.toPath(), OWNER_ONLY_FILE_PERMISSIONS)
+        return
+    }
+    restrictPermissionsBestEffort(file, executable = false)
+}
+
+@Throws(IOException::class)
+private fun restrictDirectoryToOwner(directory: File) {
+    if (OsType.current.isUnixoid()) {
+        Files.setPosixFilePermissions(directory.toPath(), OWNER_ONLY_DIRECTORY_PERMISSIONS)
+        return
+    }
+    restrictPermissionsBestEffort(directory, executable = true)
+}
+
+private fun restrictPermissionsBestEffort(file: File, executable: Boolean) {
+    val results = mutableListOf(
+            file.setReadable(false, false),
+            file.setWritable(false, false),
+            file.setExecutable(false, false),
+            file.setReadable(true, true),
+            file.setWritable(true, true))
+    if (executable) {
+        results.add(file.setExecutable(true, true))
+    }
+    if (!results.all { it }) {
+        logger?.debug { "Could not fully restrict permissions for $file on ${OsType.current}; continuing with filesystem defaults" }
+    }
 }

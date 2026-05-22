@@ -212,7 +212,7 @@ class HiddenServiceSocket @JvmOverloads constructor(
         val testFile1 = File("/usr/share/whonix", "marker")
         val testFile2 = File("/usr/share/anon-ws-base-files", "workstation")
         return if (testFile1.exists() && testFile2.exists()) {
-            logger?.info("Whonix WS detected, binding to external interface.")
+            logger?.info { "Whonix WS detected, binding to external interface." }
             true
         } else {
             false
@@ -251,11 +251,11 @@ private fun setup(onionUrl: String, port: Int, numTries: Int, proxyHost: String,
             logger?.debug { "got proxy $proxy" }
             val ssock = SocksSocket(proxy, onionUrl, port)
 
-            logger?.debug("Took ${Calendar.getInstance().timeInMillis - before}ms to connect to " + onionUrl + ":" + port)
+            logger?.debug { "Took ${Calendar.getInstance().timeInMillis - before}ms to connect to $onionUrl:$port" }
             ssock.tcpNoDelay = true
             return ssock
         } catch (exx: UnknownHostException) {
-            logger?.debug("Try $i connecting to $onionUrl:$port failed. retrying...")
+            logger?.debug { "Try $i connecting to $onionUrl:$port failed. retrying..." }
             Thread.sleep(RETRY_SLEEP)
             continue
 

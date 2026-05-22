@@ -42,14 +42,16 @@ private const val BINARY_TOR_MACOS = "tor"
 private const val BINARY_TOR_WIN = "tor.exe"
 private const val BINARY_TOR_LNX = "tor"
 private const val PATH_LNX = "linux/"
-private const val PATH_LNXAA64 = "${PATH_LNX}aarch64/"
 private const val PATH_LNX64 = "${PATH_LNX}x64/"
 private const val PATH_LNX32 = "${PATH_LNX}x86/"
+private const val PATH_LNXAA64 = "${PATH_LNX}aarch64/"
 private const val PATH_MACOS = "osx/"
 private const val PATH_MACOS64 = "${PATH_MACOS}x64/"
+private const val PATH_MACOS_AARCH64 = "${PATH_MACOS}aarch64/"
 private const val PATH_WIN = "windows/"
 private const val PATH_WIN32 = "${PATH_WIN}x86/"
 private const val PATH_NATIVE = "native/"
+private const val BINARY_CODESIGN = "/usr/bin/codesign"
 
 private const val OS_UNSUPPORTED = "We don't support Tor on this OS"
 
@@ -119,6 +121,7 @@ class NativeTor @JvmOverloads @Throws(TorCtlException::class) constructor(workin
         }
     }
 
+    @Throws(IOException::class)
     override fun preprocessHsDirName(hsDirName: String): File {
         return context.getHiddenServiceDirectory(hsDirName)
     }
@@ -133,6 +136,7 @@ class NativeTor @JvmOverloads @Throws(TorCtlException::class) constructor(workin
                 control.shutdown()
             }
         }
+
     }
 }
 
@@ -146,34 +150,16 @@ class NativeContext(workingDirectory: File, overrides: Torrc?) : TorContext(work
         }
 
     override val pathToTorExecutable: String by lazy {
-        when (OsType.current) {
-            OsType.WIN -> PATH_NATIVE + PATH_WIN32
-            OsType.MACOS -> PATH_NATIVE + PATH_MACOS64
-            OsType.LNX32 -> PATH_NATIVE + PATH_LNX32
-            OsType.LNX64 -> PATH_NATIVE + PATH_LNX64
-            OsType.LNXAA64 -> PATH_NATIVE + PATH_LNXAA64
-            else -> throw  RuntimeException(OS_UNSUPPORTED)
-        }
+        nativeExecutablePath(OsType.current)
     }
 
     private val rcPath: String by lazy {
-        when (OsType.current) {
-            OsType.WIN -> PATH_NATIVE + PATH_WIN
-            OsType.MACOS -> PATH_NATIVE + PATH_MACOS
-            OsType.LNXAA64, OsType.LNX32, OsType.LNX64 -> PATH_NATIVE + PATH_LNX
-            else -> throw  RuntimeException(OS_UNSUPPORTED)
-        }
+        nativeRcPath(OsType.current)
     }
-
     override val pathToRC: String = "$rcPath$FILE_TORRC_NATIVE"
 
     override val torExecutableFileName: String by lazy {
-        when (OsType.current) {
-            OsType.LNXAA64, OsType.LNX32, OsType.LNX64 -> BINARY_TOR_LNX
-            OsType.WIN -> BINARY_TOR_WIN
-            OsType.MACOS -> BINARY_TOR_MACOS
-            else -> throw  RuntimeException(OS_UNSUPPORTED)
-        }
+        nativeTorExecutableFileName(OsType.current)
     }
 
     override fun getByName(fileName: String) = this::class.java.getResourceAsStream("/$fileName") ?: throw IOException(
@@ -183,11 +169,94 @@ class NativeContext(workingDirectory: File, overrides: Torrc?) : TorContext(work
 
     override fun installFiles() {
         super.installFiles()
-        when (OsType.current) {
-            OsType.LNXAA64, OsType.WIN, OsType.LNX32, OsType.LNX64, OsType.MACOS -> extractContentFromArchive(workingDirectory,
-                    getByName(
-                            pathToTorExecutable + FILE_ARCHIVE))
-            else -> throw RuntimeException(OS_UNSUPPORTED)
+        if (!nativeTorSupported(OsType.current)) {
+            throw RuntimeException(OS_UNSUPPORTED)
         }
+        extractContentFromArchive(workingDirectory, getByName(pathToTorExecutable + FILE_ARCHIVE))
+        signExtractedMacOSAarch64Binaries(workingDirectory, OsType.current)
+    }
+}
+
+internal fun nativeExecutablePath(osType: OsType): String {
+    return when (osType) {
+        OsType.WIN -> PATH_NATIVE + PATH_WIN32
+        OsType.MACOS -> PATH_NATIVE + PATH_MACOS64
+        OsType.MACOS_AARCH64 -> PATH_NATIVE + PATH_MACOS_AARCH64
+        OsType.LNX32 -> PATH_NATIVE + PATH_LNX32
+        OsType.LNX64 -> PATH_NATIVE + PATH_LNX64
+        OsType.LNXAA64 -> PATH_NATIVE + PATH_LNXAA64
+        else -> throw RuntimeException(OS_UNSUPPORTED)
+    }
+}
+
+internal fun nativeRcPath(osType: OsType): String {
+    return when (osType) {
+        OsType.WIN -> PATH_NATIVE + PATH_WIN
+        OsType.MACOS, OsType.MACOS_AARCH64 -> PATH_NATIVE + PATH_MACOS
+        OsType.LNX32, OsType.LNX64, OsType.LNXAA64 -> PATH_NATIVE + PATH_LNX
+        else -> throw RuntimeException(OS_UNSUPPORTED)
+    }
+}
+
+internal fun nativeTorExecutableFileName(osType: OsType): String {
+    return when (osType) {
+        OsType.LNX32, OsType.LNX64, OsType.LNXAA64 -> BINARY_TOR_LNX
+        OsType.WIN -> BINARY_TOR_WIN
+        OsType.MACOS, OsType.MACOS_AARCH64 -> BINARY_TOR_MACOS
+        else -> throw RuntimeException(OS_UNSUPPORTED)
+    }
+}
+
+internal fun nativeTorSupported(osType: OsType): Boolean {
+    return when (osType) {
+        OsType.WIN, OsType.LNX32, OsType.LNX64, OsType.LNXAA64, OsType.MACOS, OsType.MACOS_AARCH64 -> true
+        else -> false
+    }
+}
+
+internal fun signExtractedMacOSAarch64Binaries(workingDirectory: File, osType: OsType) {
+    if (osType != OsType.MACOS_AARCH64) {
+        return
+    }
+
+    workingDirectory.walkTopDown()
+            .filter { it.isFile && it.isMachOFile() }
+            .forEach { signAdHoc(it) }
+}
+
+internal fun File.isMachOFile(): Boolean {
+    if (!isFile || length() < 4) {
+        return false
+    }
+
+    val magic = ByteArray(4)
+    inputStream().use { input ->
+        if (input.read(magic) != magic.size) {
+            return false
+        }
+    }
+
+    return magic.contentEquals(byteArrayOf(0xFE.toByte(), 0xED.toByte(), 0xFA.toByte(), 0xCE.toByte())) ||
+            magic.contentEquals(byteArrayOf(0xFE.toByte(), 0xED.toByte(), 0xFA.toByte(), 0xCF.toByte())) ||
+            magic.contentEquals(byteArrayOf(0xCE.toByte(), 0xFA.toByte(), 0xED.toByte(), 0xFE.toByte())) ||
+            magic.contentEquals(byteArrayOf(0xCF.toByte(), 0xFA.toByte(), 0xED.toByte(), 0xFE.toByte())) ||
+            magic.contentEquals(byteArrayOf(0xCA.toByte(), 0xFE.toByte(), 0xBA.toByte(), 0xBE.toByte())) ||
+            magic.contentEquals(byteArrayOf(0xBE.toByte(), 0xBA.toByte(), 0xFE.toByte(), 0xCA.toByte()))
+}
+
+private fun signAdHoc(file: File) {
+    val process = ProcessBuilder(BINARY_CODESIGN, "--force", "--sign", "-", file.absolutePath)
+            .redirectErrorStream(true)
+            .start()
+    val output = process.inputStream.bufferedReader().use { it.readText() }
+    val exit = try {
+        process.waitFor()
+    } catch (e: InterruptedException) {
+        Thread.currentThread().interrupt()
+        throw IOException("Interrupted while signing ${file.absolutePath}", e)
+    }
+
+    if (exit != 0) {
+        throw IOException("Could not ad-hoc sign ${file.absolutePath}: ${output.trim()}")
     }
 }

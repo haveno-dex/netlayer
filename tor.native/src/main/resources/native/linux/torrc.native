@@ -1,5 +1,9 @@
-## Lyrebird handles obfs4 and webtunnel
+## lyrebird configuration
+# Intentionally exclude legacy lyrebird transports: obfs2, obfs3, and scramblesuit
+# are deprecated and superseded by obfs4; meek_lite is not exposed because this
+# bundle no longer ships the legacy meek-client used by older torrc configs.
 ClientTransportPlugin obfs4,webtunnel exec ./pluggable_transports/lyrebird
+ClientTransportPlugin snowflake exec ./pluggable_transports/lyrebird
 
-## Conjure (Optional, but included in modern bundles)
-ClientTransportPlugin conjure exec ./pluggable_transports/conjure-client
+## conjure configuration
+ClientTransportPlugin conjure exec ./pluggable_transports/conjure-client -registerURL https://registration.refraction.network/api
