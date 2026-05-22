@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.github.haveno-dex.netlayer</groupId>
         <artifactId>parent</artifactId>
-        <version>0.7.9</version>
+        <version>0.7.10</version>
     </parent>
 
     <artifactId>tor</artifactId>
@@ -23,18 +23,18 @@
         <dependency>
             <groupId>com.github.haveno-dex</groupId>
             <artifactId>jtorctl</artifactId>
-            <!-- v1.6 -->
-            <version>c2f57fa22e502d68143492746a66fcecdabb0fd9</version>
+            <!-- v1.7 -->
+            <version>59082d8bb32737be8de144b12916d3b2eadd41f9</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-compress</artifactId>
-            <version>1.21</version>
+            <version>1.28.0</version>
         </dependency>
         <dependency>
             <groupId>org.tukaani</groupId>
             <artifactId>xz</artifactId>
-            <version>1.6</version>
+            <version>1.12</version>
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
@@ -43,7 +43,7 @@
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-test</artifactId>
+            <artifactId>kotlin-test-junit</artifactId>
             <version>${kotlin.version}</version>
             <scope>test</scope>
         </dependency>
@@ -55,7 +55,7 @@
             <plugin>
                 <artifactId>kotlin-maven-plugin</artifactId>
                 <configuration>
-                    <jvmTarget>1.8</jvmTarget>
+                    <jvmTarget>${java.version}</jvmTarget>
                 </configuration>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <version>${kotlin.version}</version>
@@ -86,8 +86,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven-compiler-plugin.version}</version>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <release>${java.version}</release>
                 </configuration>
                 <executions>
                     <!-- Replacing default-compile as it is treated specially by maven -->
@@ -119,7 +118,7 @@
             <plugin>
               <groupId>org.codehaus.mojo</groupId>
               <artifactId>build-helper-maven-plugin</artifactId>
-              <version>3.0.0</version>
+              <version>3.6.1</version>
               <executions>
                 <execution>
                   <phase>generate-sources</phase>
@@ -137,7 +136,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.10.4</version>
+                <version>3.12.0</version>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
@@ -149,4 +148,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>

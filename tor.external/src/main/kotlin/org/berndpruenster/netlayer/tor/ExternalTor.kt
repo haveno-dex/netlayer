@@ -23,14 +23,19 @@ import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.SocketAddress
 import java.io.File
+import java.nio.charset.StandardCharsets
+import java.security.SecureRandom
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
-import kotlin.random.Random
 
 class ExternalTor : Tor {
     val EVENTS = listOf("CIRC", "WARN", "ERR")
 
     private val controlHost: String
+
+    companion object {
+        private val secureRandom = SecureRandom()
+    }
 
     private abstract class Authenticator {
         abstract fun authenticate(controlConnection: TorController)
@@ -44,18 +49,17 @@ class ExternalTor : Tor {
 
     private class PasswordAuthenticator(private val password: String) : Authenticator() {
         override fun authenticate(controlConnection: TorController) {
-            controlConnection.authenticate(password.toByteArray())
+            controlConnection.authenticate(password.toByteArray(StandardCharsets.UTF_8))
         }
     }
 
     private class CookieAuthenticator(private val cookieFile: File) : Authenticator() {
         override fun authenticate(controlConnection: TorController) {
-            var cookie: ByteArray?
             try {
-                cookie = cookieFile.readBytes()
+                val cookie = cookieFile.readBytes()
                 controlConnection.authenticate(cookie)
             } catch (e: Exception) {
-                e.printStackTrace()
+                logger?.error(e) { "Tor cookie authentication failed" }
                 throw e
             }
         }
@@ -100,15 +104,16 @@ class ExternalTor : Tor {
     private class SafeCookieAuthenticator(private val cookieFile: File) : Authenticator() {
         override fun authenticate(controlConnection: TorController) {
             // create client nonce
-            val clientNonce = Random.Default.nextBytes(32)
+            val clientNonce = ByteArray(32)
+            secureRandom.nextBytes(clientNonce)
             val result = controlConnection.authChallenge(clientNonce)
 
             // check if server knows the contents of the cookie
-            val keySpec = SecretKeySpec("Tor safe cookie authentication server-to-controller hash".toByteArray(), "HmacSHA256")
+            val keySpec = SecretKeySpec("Tor safe cookie authentication server-to-controller hash".toByteArray(StandardCharsets.US_ASCII), "HmacSHA256")
             val mac = Mac.getInstance("HmacSHA256")
             mac.init(keySpec)
             try {
-                var cookie = cookieFile.readBytes()
+                val cookie = cookieFile.readBytes()
                 mac.update(cookie)
                 mac.update(clientNonce)
                 mac.update(result.serverNonce)
@@ -117,14 +122,14 @@ class ExternalTor : Tor {
                     throw Exception("Tor Safecookie authentication failed: Serverhash does not match computed hash")
 
                 // calculate authentication string
-                val keySpec = SecretKeySpec("Tor safe cookie authentication controller-to-server hash".toByteArray(), "HmacSHA256")
+                val keySpec = SecretKeySpec("Tor safe cookie authentication controller-to-server hash".toByteArray(StandardCharsets.US_ASCII), "HmacSHA256")
                 mac.init(keySpec)
                 mac.update(cookie)
                 mac.update(clientNonce)
                 mac.update(result.serverNonce)
                 controlConnection.authenticate(mac.doFinal())
             } catch (e: Exception) {
-                e.printStackTrace()
+                logger?.error(e) { "Tor safe-cookie authentication failed" }
                 throw e
             }
         }

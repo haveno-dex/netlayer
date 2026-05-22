@@ -62,7 +62,7 @@ internal fun File.log() {
             (it.log())
         }
     } else {
-        logger?.info(absolutePath)
+        logger?.info { absolutePath }
     }
 }
 
@@ -106,8 +106,11 @@ fun extractContentFromArchive(destinationDirectory: File, archiveInputStream: In
 
         while (entry != null) {
 
-            val f = File(destinationDirectory.canonicalPath + File.separator + entry.name.replace('/',
-                                                                                                  File.separatorChar))
+            if (entry.isSymbolicLink || entry.isLink) {
+                throw IOException("Refusing to extract archive link ${entry.name}")
+            }
+
+            val f = resolveArchiveEntry(destinationDirectory, entry)
             if (entry.isDirectory) {
                 if (!f.exists() && !f.mkdirs()) {
                     throw  IOException("could not create directory $f")
@@ -128,18 +131,28 @@ fun extractContentFromArchive(destinationDirectory: File, archiveInputStream: In
 
                 FileOutputStream(f).use { outStream ->
                     tarIn.copyTo(outStream)
-                    val mode = (entry as TarArchiveEntry).mode
+                    val mode = entry.mode
 
                     if ((mode and 65) > 0) {
                         f.setExecutable(true, (mode and 1) == 0)
                     }
-                    if (OsType.current == OsType.MACOS) {
+                    if (OsType.current.isMacOS()) {
                         f.setExecutable(true, true)
                     }
                 }
             }
-            entry = tarIn.nextTarEntry
+            entry = tarIn.nextEntry
         }
     }
 }
 
+private fun resolveArchiveEntry(destinationDirectory: File, entry: TarArchiveEntry): File {
+    val destination = destinationDirectory.canonicalFile
+    val entryName = entry.name.replace('\\', '/').replace('/', File.separatorChar)
+    val outputFile = File(destination, entryName).canonicalFile
+
+    if (!outputFile.toPath().startsWith(destination.toPath())) {
+        throw IOException("Archive entry escapes destination directory: ${entry.name}")
+    }
+    return outputFile
+}

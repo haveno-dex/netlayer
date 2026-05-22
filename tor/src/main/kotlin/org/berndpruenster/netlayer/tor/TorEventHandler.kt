@@ -69,22 +69,22 @@ class TorEventHandler : EventHandler {
 
     override fun circuitStatus(status: String, id: String, path: String) {
         val msg = "CircuitStatus: $id $status $path"
-        logger?.debug(msg)
+        logger?.debug { msg }
     }
 
     override fun streamStatus(status: String, id: String, target: String) {
         val msg = "streamStatus: status: $status $id: , target: $target"
-        logger?.debug(msg)
+        logger?.debug { msg }
 
     }
 
     override fun orConnStatus(status: String, orName: String) {
         val msg = "OR connection: status: $status, orName: $orName"
-        logger?.debug(msg)
+        logger?.debug { msg }
     }
 
     override fun bandwidthUsed(read: Long, written: Long) {
-        logger?.debug("bandwidthUsed: read: $read , written: $written")
+        logger?.debug { "bandwidthUsed: read: $read , written: $written" }
     }
 
     override fun newDescriptors(orList: List<String>) {
@@ -94,22 +94,22 @@ class TorEventHandler : EventHandler {
         orList.forEach {
             stringBuilder.append(it)
         }
-        logger?.debug(stringBuilder.toString())
+        logger?.debug { stringBuilder.toString() }
 
     }
 
     override fun message(severity: String, msg: String) {
         val msg2 = "message: severity: $severity , msg: $msg"
-        logger?.trace(msg2)
+        logger?.trace { msg2 }
     }
 
     override fun hiddenServiceEvent(type: String, msg: String) {
-        logger?.debug("hiddenService: HS_DESC $msg")
+        logger?.debug { "hiddenService: HS_DESC $msg" }
         when(type) {
             UPLOADED -> {
                 val hiddenServiceID = "${msg.split(" ")[1]}.onion"
                 synchronized(listenerMap) {
-                    logger?.info("Hidden Service $hiddenServiceID has been announced to the Tor network.")
+                    logger?.info { "Hidden Service $hiddenServiceID has been announced to the Tor network." }
                     listenerMap[hiddenServiceID]?.run {thread(block = this)}
                     listenerMap.remove(hiddenServiceID)
                 }
@@ -118,20 +118,20 @@ class TorEventHandler : EventHandler {
     }
 
     override fun hiddenServiceFailedEvent(reason: String, msg: String) {
-        logger?.debug("hiddenService: HS_DESC $msg")
+        logger?.debug { "hiddenService: HS_DESC $msg" }
     }
 
     override fun hiddenServiceDescriptor(descriptorId: String, descriptor: String, msg: String) {
-        logger?.debug("hiddenService: HS_DESC_CONTENT $descriptorId $descriptor, as in $msg")
+        logger?.debug { "hiddenService: HS_DESC_CONTENT $descriptorId $descriptor, as in $msg" }
     }
 
     override fun timeout() {
-        logger?.debug("The control connection to tor did not provide a response within one minute of waiting.")
+        logger?.debug { "The control connection to tor did not provide a response within one minute of waiting." }
     }
 
     override fun unrecognized(type: String, msg: String) {
         val msg2 = "unrecognized: current: $type , $msg: msg"
-        logger?.debug(msg2)
+        logger?.debug { msg2 }
     }
 
 }
