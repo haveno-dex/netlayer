@@ -1,5 +1,4 @@
 *.class
-*.swp
 
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
@@ -20,6 +19,8 @@ hs_err_pid*
 *.iml
 .settings
 tor-demo
+tor-market-prices-demo
+tor-peer-message-demo
 /tor/target
 /tor.native/target
 /tor.external/target

@@ -42,22 +42,38 @@ enum class OsType { WIN,
     LNX64,
     LNXAA64,
     MACOS,
+    MACOS_AARCH64,
     ANDROID;
 
     companion object {
         @JvmStatic
         val current: OsType by lazy {
+            detect(
+                    System.getProperty("os.name"),
+                    System.getProperty("os.arch"),
+                    System.getProperty("java.vm.name")
+            )
+        }
+
+        internal fun detect(osName: String, osArch: String, javaVmName: String): OsType {
             //This also works for ART
-            if (System.getProperty("java.vm.name").contains("Dalvik")) {
+            return if (javaVmName.contains("Dalvik")) {
                 ANDROID
             } else {
-                val osName = System.getProperty("os.name")
                 when {
                     osName.contains("Windows") -> WIN
-                    osName.contains("Mac")     -> MACOS
+                    osName.contains("Mac")     -> getMacOSType(osArch)
                     osName.contains("Linux")   -> getLinuxType()
                     else                       -> throw RuntimeException("Unsupported OS: $osName")
                 }
+            }
+        }
+
+        private fun getMacOSType(osArch: String): OsType {
+            return when (osArch.lowercase(Locale.ROOT)) {
+                "aarch64", "arm64" -> MACOS_AARCH64
+                "x86_64", "amd64" -> MACOS
+                else -> throw RuntimeException("Unsupported macOS architecture: $osArch")
             }
         }
 
@@ -105,7 +121,10 @@ enum class OsType { WIN,
     }
 
     fun isUnixoid(): Boolean {
-        return listOf(LNXAA64, LNX32, LNX64, MACOS).contains(this)
+        return this == LNX32 || this == LNX64 || this == LNXAA64 || isMacOS()
+    }
+
+    fun isMacOS(): Boolean {
+        return this == MACOS || this == MACOS_AARCH64
     }
 }
-
