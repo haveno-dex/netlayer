@@ -207,16 +207,20 @@ abstract class TorContext @Throws(IOException::class) protected constructor(val 
         for(i in 0..3) {
             Thread.sleep(1000 * (i.toLong() + 1), 0)
 
-            // getRuntime: Returns the runtime object associated with the current Java application.
-            // exec: Executes the specified string command in a separate process.
             val p = if (OsType.current.isUnixoid()) {
-                ProcessBuilder("ps", "-few").start()
+                ProcessBuilder("ps", "-ww", "-e", "-o", "args=").start()
             } else {
                 val windowsDir = System.getenv("windir") ?: throw IOException("windir environment variable is not set")
                 ProcessBuilder(File(File(windowsDir, "system32"), "tasklist.exe").absolutePath, "/fo", "csv", "/nh").start()
             }
             val allText = p.inputStream.bufferedReader().use(BufferedReader::readText)
-            if (!allText.contains(torExecutableFile.absolutePath))
+            val torPath = torExecutableFile.absolutePath
+            val torInUse = if (OsType.current.isUnixoid()) {
+                allText.lineSequence().any { it == torPath || it.startsWith("$torPath ") }
+            } else {
+                allText.contains(torPath)
+            }
+            if (!torInUse)
                 break
 
             if(2 == i && !OsType.current.isUnixoid())
