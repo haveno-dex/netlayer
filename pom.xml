@@ -17,8 +17,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- Maven plugins -->
         <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
-        <!-- Tor browser version 15.0.22 with tor binary version 0.4.9.12 -->
-        <tor-binary.version>f5a4bedeb467fd0f063bd572a9e71d9d239c3523</tor-binary.version>
+        <!-- Tor browser version 15.0.24 with tor binary version 0.4.9.13 (linux aarch64: 16.0a12 with 0.4.9.12) -->
+        <tor-binary.version>39a69f12abf9f812605f697f5d175ccd137fb7f4</tor-binary.version>
     </properties>
 
     <modules>
